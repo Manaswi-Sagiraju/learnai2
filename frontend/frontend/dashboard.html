@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>My Dashboard</h1>
+
+    <h2>Weak Topics</h2>
+    <div id="weak-topics"></div>
+
+    <h2>Recommended Topics</h2>
+    <div id="recommendations"></div>
+
+    <h2>Performance Chart</h2>
+    <div id="score-chart" style="width:100%;max-width:800px;height:400px;"></div>
+
+    <script src="js/scripts.js"></script>
+    <script>
+        async function loadDashboard() {
+            const weakTopics = await fetchWeakTopics();
+            const weakContainer = document.getElementById('weak-topics');
+            if(weakTopics.length === 0) weakContainer.innerHTML = "<p>No weak topics detected</p>";
+            else weakTopics.forEach(t => {
+                const div = document.createElement("div");
+                div.innerText = `Topic ID: ${t.topic_id}, Score: ${t.score}, Attempts: ${t.attempts}`;
+                weakContainer.appendChild(div);
+            });
+
+            const recommendations = await fetchRecommendations();
+            const recContainer = document.getElementById('recommendations');
+            if(recommendations.length === 0) recContainer.innerHTML = "<p>No recommendations yet</p>";
+            else recommendations.forEach(t => {
+                const div = document.createElement("div");
+                div.innerHTML = `${t.name} - Reason: ${t.reason} <a href="quiz.html?topic_id=${t.topic_id}">Take Quiz</a>`;
+                recContainer.appendChild(div);
+            });
+
+            // --- Plotly Chart ---
+            const topicNames = recommendations.map(t => t.name);
+            const scores = recommendations.map(t => t.score);
+            const weak = recommendations.map(t => t.reason.includes("Low score") ? 1 : 0);
+
+            const trace1 = {
+                x: topicNames,
+                y: scores,
+                type: 'bar',
+                name: 'Score',
+                marker: { color: weak.map(w => w ? 'red' : 'green') }
+            };
+
+            const layout = {
+                title: 'Topic Performance & Weak Areas',
+                yaxis: { title: 'Score (%)', range: [0, 100] },
+                xaxis: { title: 'Topics' }
+            };
+
+            Plotly.newPlot('score-chart', [trace1], layout);
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
